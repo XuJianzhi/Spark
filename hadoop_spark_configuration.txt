@@ -1,0 +1,136 @@
+#create hadoop user
+sudo useradd -m hadoop -s /bin/bash
+sudo passwd hadoop
+sudo adduser hadoop sudo
+
+#zhuxiao, jinru hadoop user,更新apt
+sudo apt-get update
+sudo apt-get install vim
+
+#安装SSH、配置SSH无密码登陆
+sudo apt-get install openssh-server
+ssh localhost
+exit 
+cd ~/.ssh/ 
+ssh-keygen -t rsa 
+cat ./id_rsa.pub >> ./authorized_keys
+ssh localhost		#登陆
+
+#安装Java环境
+sudo apt-get install openjdk-8-jre openjdk-8-jdk
+vim ~/.bashrc
+# export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
+source ~/.bashrc
+echo $JAVA_HOME
+java -version
+$JAVA_HOME/bin/java -version
+
+#安装 Hadoop 2
+sudo tar -zxf /home/hadoop/桌面/hadoop_spark/hadoop-2.6.5.tar.gz -C /usr/local
+cd /usr/local/
+sudo mv ./hadoop-2.6.5/ ./hadoop 
+sudo chown -R hadoop ./hadoop
+cd /usr/local/hadoop
+./bin/hadoop version
+
+#Hadoop单机配置(非分布式)
+cd /usr/local/hadoop
+mkdir ./input
+cp ./etc/hadoop/*.xml ./input   # 将配置文件作为输入文件
+./bin/hadoop jar ./share/hadoop/mapreduce/hadoop-mapreduce-examples-*.jar grep ./input ./output 'dfs[a-z.]+'
+cat ./output/*          # 查看运行结果
+rm -r ./output
+
+
+#Hadoop伪分布式配置
+gedit ./etc/hadoop/core-site.xml
+
+<configuration>
+        <property>
+             <name>hadoop.tmp.dir</name>
+             <value>file:/usr/local/hadoop/tmp</value>
+             <description>Abase for other temporary directories.</description>
+        </property>
+        <property>
+             <name>fs.defaultFS</name>
+             <value>hdfs://localhost:9000</value>
+        </property>
+</configuration>
+
+gedit ./etc/hadoop/hdfs-site.xml
+
+<configuration>
+        <property>
+             <name>dfs.replication</name>
+             <value>1</value>
+        </property>
+        <property>
+             <name>dfs.namenode.name.dir</name>
+             <value>file:/usr/local/hadoop/tmp/dfs/name</value>
+        </property>
+        <property>
+             <name>dfs.datanode.data.dir</name>
+             <value>file:/usr/local/hadoop/tmp/dfs/data</value>
+        </property>
+</configuration>
+
+./bin/hdfs namenode -format
+./sbin/start-dfs.sh
+jps
+http://localhost:50070
+
+
+#运行Hadoop伪分布式实例
+./bin/hdfs dfs -mkdir -p /user/hadoop
+./bin/hdfs dfs -mkdir input
+./bin/hdfs dfs -put ./etc/hadoop/*.xml input
+./bin/hdfs dfs -ls input
+./bin/hadoop jar ./share/hadoop/mapreduce/hadoop-mapreduce-examples-*.jar grep input output 'dfs[a-z.]+'
+./bin/hdfs dfs -cat output/*
+rm -r ./output    # 先删除本地的 output 文件夹（如果存在）
+./bin/hdfs dfs -get output ./output     # 将 HDFS 上的 output 文件夹拷贝到本机
+cat ./output/*
+./bin/hdfs dfs -rm -r output    # 删除 output 文件夹
+
+#关闭 Hadoop
+./sbin/stop-dfs.sh
+
+
+
+
+#安装 Spark
+sudo tar -zxf /home/hadoop/桌面/hadoop_spark/spark-1.6.0-bin-without-hadoop.tgz -C /usr/local/
+cd /usr/local
+sudo mv ./spark-1.6.0-bin-without-hadoop/ ./spark
+sudo chown -R hadoop:hadoop ./spark          # 此处的 hadoop 为你的用户名
+cd /usr/local/spark
+cp ./conf/spark-env.sh.template ./conf/spark-env.sh
+vim ./conf/spark-env.sh
+#zuihou:	export SPARK_DIST_CLASSPATH=$(/usr/local/hadoop/bin/hadoop classpath)
+
+#运行 Spark 示例
+cd /usr/local/spark
+./bin/run-example SparkPi
+
+
+#通过 Spark Shell 进行交互分析
+http://spark.apache.org/docs/1.6.0/quick-start.html#interactive-analysis-with-the-spark-shell
+
+./bin/pyspark
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
