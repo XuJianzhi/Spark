@@ -1,3 +1,6 @@
+http://www.powerxing.com/spark-quick-start-guide/
+
+
 #create hadoop user
 sudo useradd -m hadoop -s /bin/bash
 sudo passwd hadoop
